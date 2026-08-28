@@ -1,4 +1,4 @@
-#  Simple Tasks#
+#  Simple Tasks
 This project demonstrates the tasks lists with ToDo, In-Progress and Done Section.
 ### Technical Decisions
 - Architecture: ComposableArchitecture
