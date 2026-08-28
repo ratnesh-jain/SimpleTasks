@@ -17,9 +17,22 @@
 		0350439D30413BF500941C2F /* SimpleTasksPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SimpleTasksPackage; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		036A036A3041DFA8001C737D /* Exceptions for "SimpleTasks" folder in "SimpleTasks" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 000000000000000100000000 /* SimpleTasks */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* SimpleTasks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				036A036A3041DFA8001C737D /* Exceptions for "SimpleTasks" folder in "SimpleTasks" target */,
+			);
 			path = SimpleTasks;
 			sourceTree = "<group>";
 		};
@@ -283,6 +296,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SimpleTasks/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Tasks";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -327,6 +341,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SimpleTasks/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Simple Tasks";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

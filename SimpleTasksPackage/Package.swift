@@ -80,6 +80,7 @@ let package = Package(
             name: "TasksFeature",
             dependencies: [
                 "CreateEditTaskFeature",
+                "NetworkStatusService",
             ]
         ),
         .testTarget(

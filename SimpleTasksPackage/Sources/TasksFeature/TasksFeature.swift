@@ -48,6 +48,7 @@ public struct TasksFeature: Sendable {
             case taskButtonTapped(Task, TaskActionType)
             case seedDataButtonTapped
             case moveAction(section: TaskSections.SectionType, source: IndexSet, destination: Int)
+            case dropItems([Task], toSection: TaskSections.SectionType)
         }
         
         case destination(PresentationAction<Destination.Action>)
@@ -143,6 +144,16 @@ public struct TasksFeature: Sendable {
                 
                 return .run { send in
                     try Task.move(id: movedTask.id, status: sectionType.asTaskStatus, from: source.first!, to: destination)
+                }
+                
+            case .user(.dropItems(let items, let section)):
+                let itemIds = items.map { $0.id }
+                return .run { send in
+                    try await database.write { db in
+                        try Task.find(itemIds)
+                            .update { $0.status = section.asTaskStatus }
+                            .execute(db)
+                    }
                 }
             }
         }

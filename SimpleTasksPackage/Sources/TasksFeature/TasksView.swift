@@ -21,23 +21,66 @@ public struct TasksView: View {
     }
     
     public var body: some View {
-        List {
-            ForEach(store.sections.sections) { (section: TaskSections.Section) in
-                if !section.isEmpty {
+        ScrollView {
+            LazyVStack(spacing: 8) {
+                ForEach(store.sections.sections) { (section: TaskSections.Section) in
                     Section {
-                        ForEach(section.items) { item in
-                            TaskItemView(task: item, namespace: namespace) { action in
-                                store.send(.user(.taskButtonTapped(item, action)))
+                        LazyVStack(spacing: 0) {
+                            if section.items.isEmpty {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "checklist")
+                                        .font(.title)
+                                    Text("Drag Items here")
+                                }
+                                .frame(height: 132)
+                                .foregroundStyle(.secondary)
                             }
+                            ForEach(section.items) { item in
+                                TaskItemView(task: item, namespace: namespace) { action in
+                                    store.send(.user(.taskButtonTapped(item, action)))
+                                }
+                                .padding()
+                                .draggable(item) {
+                                    HStack {
+                                        Image(systemName: "checklist")
+                                        Text(item.title)
+                                    }
+                                    .padding()
+                                    .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24, style: .continuous))
+                                }
+                                if item.id != section.items.last?.id {
+                                    Divider()
+                                }
+                            }
+                            //.onMove { indexSet, destination in
+                            //    store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
+                            //}
                         }
-                        .onMove { indexSet, destination in
-                            store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
+                        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .stroke(Color(.separator), style: .init(lineWidth: 1, dash: [10, 5]))
+                                .padding(2)
                         }
+                        .clipShape(.rect(cornerRadius: 24, style: .continuous))
                     } header: {
                         Text(section.type.title)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundStyle(.secondary)
+                            .padding([.horizontal, .top])
+                    }
+                    .dropDestination(for: Task.self, isEnabled: true) { tasks, session in
+                        store.send(.user(.dropItems(tasks, toSection: section.type)), animation: .smooth)
                     }
                 }
             }
+            .padding()
+        }
+        .scrollContentBackground(.hidden)
+        .background {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
         }
         .overlay {
             if store.sections.isEmpty {
@@ -107,7 +150,12 @@ public struct TasksView: View {
                 onAction(.edit)
             } label: {
                 HStack(alignment: .firstTextBaseline) {
+                    if task.status == .done {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.accentColor.secondary)
+                    }
                     Text(task.title)
+                        .foregroundStyle(task.status == .done ? .secondary : .primary)
                         .matchedTransitionSource(id: task.id, in: namespace)
                     Spacer()
                     Menu {
@@ -145,6 +193,7 @@ public struct TasksView: View {
                         }
                     } label: {
                         Image(systemName: "info.circle")
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
                 .contentShape(.rect)
