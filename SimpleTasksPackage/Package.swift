@@ -19,6 +19,9 @@ extension Target.Dependency {
     static var dependenciesMacros: Self {
         .product(name: "DependenciesMacros", package: "swift-dependencies")
     }
+    static var dependenciesTestSupport: Self {
+        .product(name: "DependenciesTestSupport", package: "swift-dependencies")
+    }
 }
 
 let package = Package(
@@ -89,7 +92,8 @@ let package = Package(
             name: "TasksFeatureTests",
             dependencies: [
                 "CoreModels",
-                .sqliteData,
+                "TasksFeature",
+                .dependenciesTestSupport,
             ],
         ),
     ]

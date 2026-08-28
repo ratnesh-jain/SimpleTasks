@@ -41,7 +41,18 @@ public struct Task: Codable, Equatable, Identifiable, Sendable {
     public var uploaded: Bool
     public var createdBy: String
     
-    public init(id: UUID = .init(), title: String, description: String = "", status: TaskStatus = .todo, sortOrder: Int = 0, createdAt: Date = .now, updatedAt: Date = .now, deletedAt: Date? = nil, uploaded: Bool = false, createdBy: String) {
+    public init(
+        id: UUID = { @Dependency(\.uuid) var uuid; return uuid() }(),
+        title: String,
+        description: String = "",
+        status: TaskStatus = .todo,
+        sortOrder: Int = 0,
+        createdAt: Date = { @Dependency(\.date.now) var now; return now }(),
+        updatedAt: Date = { @Dependency(\.date.now) var now; return now }(),
+        deletedAt: Date? = nil,
+        uploaded: Bool = false,
+        createdBy: String
+    ) {
         self.id = id
         self.title = title
         self.description = description

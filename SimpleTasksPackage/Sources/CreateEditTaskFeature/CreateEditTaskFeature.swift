@@ -77,8 +77,9 @@ public struct CreateEditTaskFeature: Sendable {
                 
             case .destination(.presented(.alert(.delete(let taskID)))):
                 return .run { send in
+                    @Dependency(\.date.now) var now
                     try await database.write { db in
-                        try Task.find(taskID).update { $0.deletedAt = #bind(Date.now) }.execute(db)
+                        try Task.find(taskID).update { $0.deletedAt = #bind(now) }.execute(db)
                     }
                     await dismiss()
                 }

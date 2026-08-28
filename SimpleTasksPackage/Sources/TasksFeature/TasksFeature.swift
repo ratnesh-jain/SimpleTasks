@@ -68,8 +68,9 @@ public struct TasksFeature: Sendable {
             case .destination(.presented(.alert(.deleteTask(let taskID)))):
                 return .run { send in
                     try await database.write { db in
+                        @Dependency(\.date.now) var now
                         try Task.find(taskID).update(set: {
-                            $0.deletedAt = #bind(Date.now)
+                            $0.deletedAt = #bind(now)
                         }).execute(db)
                     }
                 }
@@ -84,15 +85,7 @@ public struct TasksFeature: Sendable {
             case .user(.taskButtonTapped(let task, let actionType)):
                 switch actionType {
                 case .delete:
-                    state.destination = .alert(.init(title: {
-                        TextState("Are you sure you want to delete '\(task.title)'?")
-                    }, actions: {
-                        ButtonState(role: .destructive, action: .deleteTask(task.id)) {
-                            TextState("Yes, Delete!")
-                        }
-                    }, message: {
-                        TextState("This will be an irreversible action.")
-                    }))
+                    state.destination = .alert(.delete(task: task))
                     return .none
                     
                 case .edit:
@@ -185,3 +178,17 @@ public struct TasksFeature: Sendable {
 
 extension TasksFeature.Destination.State: Equatable {}
 extension TasksFeature.Destination.Action: Equatable {}
+
+extension AlertState where Action == TasksFeature.Action.AlertAction {
+    static func delete(task: Task) -> Self {
+        AlertState(title: {
+            TextState("Are you sure you want to delete '\(task.title)'?")
+        }, actions: {
+            ButtonState(role: .destructive, action: .deleteTask(task.id)) {
+                TextState("Yes, Delete!")
+            }
+        }, message: {
+            TextState("This will be an irreversible action.")
+        })
+    }
+}

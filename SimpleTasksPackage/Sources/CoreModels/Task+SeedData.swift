@@ -16,7 +16,7 @@ extension Task {
                 title: "Design home screen",
                 description: "Sketch out the initial layout for the home screen in Figma.",
                 status: .todo,
-                sortOrder: 0,
+                sortOrder: 1,
                 createdBy: "Ratnesh"
             ),
             Task(
@@ -24,7 +24,7 @@ extension Task {
                 title: "Write project kickoff doc",
                 description: "Draft the scope and goals for the next release.",
                 status: .inProgress,
-                sortOrder: 1,
+                sortOrder: 2,
                 createdBy: "Ratnesh"
             ),
             Task(
@@ -32,7 +32,7 @@ extension Task {
                 title: "Review pull requests",
                 description: "Go through the open PRs and leave feedback.",
                 status: .inProgress,
-                sortOrder: 2,
+                sortOrder: 3,
                 createdBy: "Ratnesh"
             ),
             Task(
@@ -40,7 +40,7 @@ extension Task {
                 title: "Set up CI pipeline",
                 description: "Configure the build and test jobs on GitHub Actions.",
                 status: .done,
-                sortOrder: 3,
+                sortOrder: 4,
                 createdBy: "Ratnesh"
             ),
             Task(
@@ -48,7 +48,7 @@ extension Task {
                 title: "Ship v1.0",
                 description: "Submit the first release to the App Store.",
                 status: .done,
-                sortOrder: 4,
+                sortOrder: 5,
                 createdBy: "Ratnesh"
             ),
         ]
