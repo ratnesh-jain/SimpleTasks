@@ -31,13 +31,34 @@ public struct CreateEditTaskView: View {
                     .lineLimit(5, reservesSpace: true)
             } header: {
                 Text("Description")
-            } footer: {
-                HStack {
-                    Text("Last Edited At:")
-                    Spacer()
-                    Text(store.task.updatedAt.formatted(date: .complete, time: .standard))
+            }
+            
+            Section {
+                Picker("Select State", selection: $store.task.status) {
+                    ForEach(TaskStatus.allCases) { status in
+                        Text(status.displayText)
+                    }
                 }
             }
+            
+            Section {
+                Button(role: .destructive) {
+                    store.send(.user(.deleteButtonTapped))
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Danger Area")
+                    .foregroundStyle(.red)
+            }
+        }
+        .alert($store.scope(state: \.destination?.alert, action: \.destination.alert))
+        .safeAreaInset(edge: .bottom) {
+            Text("Last Edited At: \(store.task.updatedAt.formatted(date: .complete, time: .standard))")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal)
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

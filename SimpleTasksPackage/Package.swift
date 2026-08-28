@@ -83,7 +83,10 @@ let package = Package(
         ),
         .testTarget(
             name: "TasksFeatureTests",
-            dependencies: ["TasksFeature"],
+            dependencies: [
+                "CoreModels",
+                .sqliteData,
+            ],
         ),
     ]
 )

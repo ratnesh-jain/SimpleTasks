@@ -26,11 +26,18 @@ public struct CreateEditTaskFeature: Sendable {
         }
     }
     
+    @Reducer
+    public enum Destination {
+        case alert(AlertState<CreateEditTaskFeature.Action.AlertAction>)
+    }
+    
     @ObservableState
     public struct State: Equatable {
         var task: Task
         var editingScope: Scope
         public var taskID: String?
+        
+        @Presents var destination: Destination.State?
         
         public init(task: Task? = nil) {
             self.taskID = task?.id.uuidString
@@ -40,12 +47,18 @@ public struct CreateEditTaskFeature: Sendable {
     }
     
     public enum Action: Equatable, BindableAction {
+        public enum AlertAction: Equatable {
+            case delete(Task.ID)
+        }
+        
         public enum UserAction: Equatable {
             case cancelButtonTapped
+            case deleteButtonTapped
             case saveButtonTapped
         }
         
         case binding(BindingAction<State>)
+        case destination(PresentationAction<Destination.Action>)
         case user(UserAction)
     }
     
@@ -62,10 +75,33 @@ public struct CreateEditTaskFeature: Sendable {
             case .binding:
                 return .none
                 
+            case .destination(.presented(.alert(.delete(let taskID)))):
+                return .run { send in
+                    try await database.write { db in
+                        try Task.find(taskID).update { $0.deletedAt = #bind(Date.now) }.execute(db)
+                    }
+                    await dismiss()
+                }
+                
+            case .destination:
+                return .none
+                
             case .user(.cancelButtonTapped):
                 return .run { send in
                     await dismiss()
                 }
+                
+            case .user(.deleteButtonTapped):
+                state.destination = .alert(.init(title: {
+                    TextState("Are you sure you want to delete '\(state.task.title)'?")
+                }, actions: {
+                    ButtonState(role: .destructive, action: .delete(state.task.id)) {
+                        TextState("Yes, Delete!")
+                    }
+                }, message: {
+                    TextState("This will be irreversible action.")
+                }))
+                return .none
                 
             case .user(.saveButtonTapped):
                 let storedTask = state.task
@@ -77,5 +113,9 @@ public struct CreateEditTaskFeature: Sendable {
                 }
             }
         }
+        .ifLet(\.$destination, action: \.destination)
     }
 }
+
+extension CreateEditTaskFeature.Destination.State: Equatable {}
+extension CreateEditTaskFeature.Destination.Action: Equatable {}

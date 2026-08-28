@@ -9,10 +9,23 @@ import Foundation
 import Sharing
 import SQLiteData
 
-public enum TaskStatus: Int, Codable, Equatable, Sendable, QueryBindable {
+public enum TaskStatus: Int, CaseIterable, Codable, Equatable, Identifiable, Sendable, QueryBindable {
     case todo
     case inProgress
     case done
+    
+    public var id: Self { self }
+    
+    public var displayText: String {
+        switch self {
+        case .todo:
+            "To Do"
+        case .inProgress:
+            "In Progress"
+        case .done:
+            "Done"
+        }
+    }
 }
 
 @Table
@@ -100,20 +113,24 @@ extension Task: DatabaseTriggering {
             }))
             .execute(db)
             
+            // MARK: - Change updatedAt date
+            try Task.createTemporaryTrigger(after: .update(touch: { new in
+                new.uploaded = false
+                new.updatedAt = #sql("datetime('subsec')")
+            }, when: { old, new in
+                new.status.neq(old.status)
+                    .or(new.title.neq(old.title))
+                    .or(new.description.neq(old.description))
+                    .or(new.sortOrder.neq(old.sortOrder))
+                    .or(#sql("\(new.deletedAt) IS NOT \(old.deletedAt)"))
+            }))
+            .execute(db)
+            
             // MARK: - Not Uploaded trigger
             try Task.createTemporaryTrigger(after: .update(forEachRow: { old, new in
                 #sql("SELECT \($taskRecordUpdated(new.id))")
             }, when: { old, new in
                 new.uploaded.eq(false)
-            }))
-            .execute(db)
-            
-            // MARK: - Change updatedAt date
-            try Task.createTemporaryTrigger(after: .update(touch: { new in
-                new.uploaded = false
-                new.updatedAt = #sql("datetime()")
-            }, when: { old, new in
-                new.status.neq(old.status).or(new.sortOrder.neq(old.sortOrder))
             }))
             .execute(db)
         }
@@ -128,6 +145,7 @@ func taskRecordDeleted(id: Task.ID) {
 
 @DatabaseFunction
 func taskRecordUpdated(id: Task.ID) {
+    print("Task record updated for id: \(id)")
     Swift.Task {
         await withErrorReporting {
             @Dependency(\.suspendingClock) var clock

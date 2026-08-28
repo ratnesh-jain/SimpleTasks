@@ -53,7 +53,7 @@ struct SyncServiceImpl {
     }
     
     func observeNetworkStatus() {
-        Swift.Task.detached {
+        Swift.Task {
             @Dependency(\.networkStatusService) var networkStatus
             for await isConnected in networkStatus.networkStatusStream() {
                 if isConnected {
@@ -64,7 +64,7 @@ struct SyncServiceImpl {
     }
     
     func observeFirestore() {
-        Swift.Task.detached {
+        Swift.Task {
             await withErrorReporting {
                 @Dependency(\.firebaseService) var firestore
                 for await change in firestore.collectionUpdateStream(collectionName: Task.tableName, documentType: Task.self) {
@@ -86,7 +86,7 @@ struct SyncServiceImpl {
     }
     
     func observeRecords() {
-        Swift.Task.detached {
+        Swift.Task {
             await withTaskGroup { group in
                 group.addTask {
                     await withErrorReporting {
