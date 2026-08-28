@@ -39,6 +39,7 @@ struct SimpleTasks: App {
             NavigationStack {
                 TasksView(store: store)
             }
+            .tint(.green)
         }
     }
 }

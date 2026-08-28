@@ -41,16 +41,18 @@ public struct CreateEditTaskView: View {
                 }
             }
             
-            Section {
-                Button(role: .destructive) {
-                    store.send(.user(.deleteButtonTapped))
-                } label: {
-                    Label("Delete", systemImage: "trash")
+            if store.editingScope == .edit {
+                Section {
+                    Button(role: .destructive) {
+                        store.send(.user(.deleteButtonTapped))
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                            .foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Danger Area")
                         .foregroundStyle(.red)
                 }
-            } header: {
-                Text("Danger Area")
-                    .foregroundStyle(.red)
             }
         }
         .alert($store.scope(state: \.destination?.alert, action: \.destination.alert))

@@ -26,10 +26,9 @@ public struct TasksView: View {
                 if !section.isEmpty {
                     Section {
                         ForEach(section.items) { item in
-                            TaskItemView(task: item) { action in
+                            TaskItemView(task: item, namespace: namespace) { action in
                                 store.send(.user(.taskButtonTapped(item, action)))
                             }
-                            .matchedTransitionSource(id: item.id, in: namespace)
                         }
                         .onMove { indexSet, destination in
                             store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
@@ -100,6 +99,7 @@ public struct TasksView: View {
     
     struct TaskItemView: View {
         let task: Task
+        let namespace: Namespace.ID
         var onAction: (TasksFeature.TaskActionType) -> Void
         
         var body: some View {
@@ -108,11 +108,17 @@ public struct TasksView: View {
             } label: {
                 HStack(alignment: .firstTextBaseline) {
                     Text(task.title)
+                        .matchedTransitionSource(id: task.id, in: namespace)
                     Spacer()
                     Menu {
+                        Button("Edit", systemImage: "square.and.pencil") {
+                            onAction(.edit)
+                        }
+                        Divider()
                         Button("Delete", systemImage: "trash", role: .destructive) {
                             onAction(.delete)
                         }
+                        .tint(.red)
                         Divider()
                         switch task.status {
                         case .todo:
