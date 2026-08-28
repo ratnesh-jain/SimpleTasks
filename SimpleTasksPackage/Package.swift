@@ -86,6 +86,7 @@ let package = Package(
                 "AppUserInterfaceUtilities",
                 "CreateEditTaskFeature",
                 "NetworkStatusService",
+                "SyncService",
             ]
         ),
         .testTarget(

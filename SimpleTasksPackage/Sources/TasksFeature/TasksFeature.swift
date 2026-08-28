@@ -32,14 +32,15 @@ public struct TasksFeature: Sendable {
     
     @ObservableState
     public struct State: Equatable {
+        var searchText: String = ""
         @Fetch(TaskSectionsRequest(), animation: .smooth) var sections: TaskSections = .init()
         @SharedReader(.isNetworkReachable) var isNetworkReachable
-        
         @Presents var destination: Destination.State?
+        
         public init() {}
     }
     
-    public enum Action: Equatable {
+    public enum Action: Equatable, BindableAction {
         public enum AlertAction: Equatable {
             case deleteTask(Task.ID)
         }
@@ -54,6 +55,7 @@ public struct TasksFeature: Sendable {
             case dropAction([Task], destination: ReorderDifference<Task.ID, TaskSections.SectionType>.Destination?)
         }
         
+        case binding(BindingAction<State>)
         case destination(PresentationAction<Destination.Action>)
         case user(UserAction)
     }
@@ -63,8 +65,19 @@ public struct TasksFeature: Sendable {
     public init() {}
     
     public var body: some ReducerOf<Self> {
+        BindingReducer()
+        
         Reduce<State, Action> { state, action in
             switch action {
+            case .binding(\.searchText):
+                let reader = state.$sections
+                let searchText = state.searchText
+                return .run { send in
+                    try await reader.load(TaskSectionsRequest(searchText: searchText), animation: .smooth)
+                }
+                
+            case .binding:
+                return .none
             case .destination(.presented(.alert(.deleteTask(let taskID)))):
                 return .run { send in
                     try await database.write { db in

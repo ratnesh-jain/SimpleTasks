@@ -11,6 +11,8 @@ import ComposableArchitecture
 import CoreModels
 import Dependencies
 import Foundation
+import NetworkStatusService
+import SyncService
 import SwiftUI
 
 public struct TasksView: View {
@@ -88,13 +90,14 @@ public struct TasksView: View {
             })
             .padding()
         }
+        .searchable(text: $store.searchText)
         .scrollContentBackground(.hidden)
         .background {
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
         }
         .overlay {
-            if store.sections.isEmpty {
+            if store.sections.isEmpty && store.searchText.isEmpty {
                 ContentUnavailableView {
                     Label("No Tasks", systemImage: "checklist")
                 } description: {
@@ -114,9 +117,11 @@ public struct TasksView: View {
                     .fill(store.isNetworkReachable ? Color.green : Color.gray)
                     .frame(width: 8, height: 8)
                 Text(store.isNetworkReachable ? "Connected" : "Disconnected")
+                    .contentTransition(.numericText())
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            .animation(.smooth, value: store.isNetworkReachable)
         })
         .navigationTitle("Simple Tasks")
         .toolbar {
@@ -224,6 +229,9 @@ public struct TasksView: View {
         } catch {
             print(error)
         }
+        
+        $0.networkStatusService = .pulsating(seconds: 2)
+        $0.syncService.start()
     }
     
     return NavigationStack {

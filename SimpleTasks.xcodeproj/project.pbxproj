@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0378266A30421C3A0062FA92 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 0378266930421C3A0062FA92 /* README.md */; };
 		0383F61A30418A4F00691144 /* FirebaseServiceLive in Frameworks */ = {isa = PBXBuildFile; productRef = 0383F61930418A4F00691144 /* FirebaseServiceLive */; };
 		0383F61E3041985E00691144 /* SyncService in Frameworks */ = {isa = PBXBuildFile; productRef = 0383F61D3041985E00691144 /* SyncService */; };
 		03CAD9F830415A4100308C6F /* TasksFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 03CAD9F730415A4100308C6F /* TasksFeature */; };
@@ -15,6 +16,7 @@
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* SimpleTasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimpleTasks.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0350439D30413BF500941C2F /* SimpleTasksPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SimpleTasksPackage; sourceTree = "<group>"; };
+		0378266930421C3A0062FA92 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -53,6 +55,7 @@
 		000000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				0378266930421C3A0062FA92 /* README.md */,
 				0350439D30413BF500941C2F /* SimpleTasksPackage */,
 				000000000000000000000010 /* SimpleTasks */,
 				03CAD9F630415A4100308C6F /* Frameworks */,
@@ -139,6 +142,7 @@
 		000000000000000140000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
+				0378266A30421C3A0062FA92 /* README.md in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */

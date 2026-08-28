@@ -56,19 +56,25 @@ public struct TaskSections: Equatable, Sendable {
 }
 
 public struct TaskSectionsRequest: FetchKeyRequest, Equatable {
-    public init() {}
+    let searchText: String
+    public init(searchText: String = "") {
+        self.searchText = searchText
+    }
     
     public func fetch(_ db: Database) throws -> TaskSections {
         let todoItems = try Task.allAvailable
             .where { $0.status.eq(TaskStatus.todo) }
+            .where { $0.title.collate(.nocase).like("%\(searchText)%") }
             .order { $0.sortOrder }
             .fetchAll(db)
         let inProgressItems = try Task.allAvailable
             .where { $0.status.eq(TaskStatus.inProgress) }
+            .where { $0.title.collate(.nocase).like("%\(searchText)%") }
             .order { $0.sortOrder }
             .fetchAll(db)
         let completedItems = try Task.allAvailable
             .where { $0.status.eq(TaskStatus.done) }
+            .where { $0.title.collate(.nocase).like("%\(searchText)%") }
             .order { $0.sortOrder }
             .fetchAll(db)
         
