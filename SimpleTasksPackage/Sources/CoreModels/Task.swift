@@ -161,13 +161,29 @@ extension Task {
         guard source != destination else { return }
         @Dependency(\.defaultDatabase) var database
         try database.write { db in
-            if source < destination {
+            // `source`/`destination` are array indices (from SwiftUI's `onMove`),
+            // which are not guaranteed to equal the `sortOrder` column values.
+            // Resolve the real sort orders of the source and destination items.
+            let ordered = try Self.allAvailable
+                .where { $0.status.eq(status) }
+                .order { $0.sortOrder }
+                .fetchAll(db)
+            guard
+                ordered.indices.contains(source),
+                ordered[source].id == id,
+                let destinationItem = ordered.indices.contains(destination) ? ordered[destination] : ordered.last
+            else { return }
+
+            let sourceOrder = ordered[source].sortOrder
+            let destinationOrder = destinationItem.sortOrder
+
+            if sourceOrder < destinationOrder {
                 try #sql("""
                 UPDATE "\(raw: Task.tableName)"
                 SET "sortOrder" = CASE
-                    WHEN "id" = \(id) THEN \(destination)
-                    WHEN "sortOrder" > \(source)
-                        AND "sortOrder" <= \(destination)
+                    WHEN "id" = \(id) THEN \(destinationOrder)
+                    WHEN "sortOrder" > \(sourceOrder)
+                        AND "sortOrder" <= \(destinationOrder)
                         THEN "sortOrder" - 1
                     ELSE "sortOrder"
                 END
@@ -176,19 +192,19 @@ extension Task {
                     AND (
                         "id" = \(id)
                         OR (
-                            "sortOrder" > \(source)
-                            AND "sortOrder" <= \(destination)
+                            "sortOrder" > \(sourceOrder)
+                            AND "sortOrder" <= \(destinationOrder)
                         )
                     )
                 """)
                 .execute(db)
-            } else {
+            } else if sourceOrder > destinationOrder {
                 try #sql("""
                 UPDATE "\(raw: Task.tableName)"
                 SET "sortOrder" = CASE
-                    WHEN "id" = \(id) THEN \(destination)
-                    WHEN "sortOrder" >= \(destination)
-                        AND "sortOrder" < \(source)
+                    WHEN "id" = \(id) THEN \(destinationOrder)
+                    WHEN "sortOrder" >= \(destinationOrder)
+                        AND "sortOrder" < \(sourceOrder)
                         THEN "sortOrder" + 1
                     ELSE "sortOrder"
                 END
@@ -197,8 +213,8 @@ extension Task {
                     AND (
                         "id" = \(id)
                         OR (
-                            "sortOrder" >= \(destination)
-                            AND "sortOrder" < \(source)
+                            "sortOrder" >= \(destinationOrder)
+                            AND "sortOrder" < \(sourceOrder)
                         )
                     )
                 """)
