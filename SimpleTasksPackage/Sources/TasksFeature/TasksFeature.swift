@@ -141,23 +141,6 @@ public struct TasksFeature: Sendable {
                 return .run { send in
                     try Task.move(id: movedTask.id, status: sectionType.asTaskStatus, from: source.first!, to: destination)
                 }
-                
-                // NOTE: For the small sets of notes, it is fine.
-                // but for larger numbers of items, logic should be moved to database level.
-                //var items = IdentifiedArray(uniqueElements: state.sections.sections[sectionIndex].items)
-                //items.move(fromOffsets: source, toOffset: destination)
-                //let updates = items.enumerated().map { (taskID: $0.element.id, sortOrder: $0.offset) }
-                
-                //return .run { send in
-                //    try await database.write { db in
-                //        for (taskID, sortOrder) in updates {
-                //            try Task.find(taskID).update {
-                //                $0.sortOrder = sortOrder
-                //            }
-                //            .execute(db)
-                //        }
-                //    }
-                //}
             }
         }
         .ifLet(\.$destination, action: \.destination)
@@ -166,11 +149,3 @@ public struct TasksFeature: Sendable {
 
 extension TasksFeature.Destination.State: Equatable {}
 extension TasksFeature.Destination.Action: Equatable {}
-
-extension Collection {
-    public subscript(safe index: Index) -> Element? {
-        get {
-            self.indices.contains(index) ? self[index] : nil
-        }
-    }
-}

@@ -51,7 +51,7 @@ public struct TaskSections: Equatable, Sendable {
     }
     
     public var isEmpty: Bool {
-        self.sections.isEmpty
+        self.sections.allSatisfy({ $0.isEmpty })
     }
 }
 

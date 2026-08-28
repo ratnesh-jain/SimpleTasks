@@ -23,18 +23,35 @@ public struct TasksView: View {
     public var body: some View {
         List {
             ForEach(store.sections.sections) { (section: TaskSections.Section) in
-                Section {
-                    ForEach(section.items) { (item: Task) in
-                        TaskItemView(task: item) { (action: TasksFeature.TaskActionType) in
-                            store.send(.user(.taskButtonTapped(item, action)))
+                if !section.isEmpty {
+                    Section {
+                        ForEach(section.items) { (item: Task) in
+                            TaskItemView(task: item) { (action: TasksFeature.TaskActionType) in
+                                store.send(.user(.taskButtonTapped(item, action)))
+                            }
+                            .matchedTransitionSource(id: item.id, in: namespace)
                         }
-                        .matchedTransitionSource(id: item.id, in: namespace)
+                        .onMove { indexSet, destination in
+                            store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
+                        }
+                    } header: {
+                        Text(section.type.title)
                     }
-                    .onMove { indexSet, destination in
-                        store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
+                }
+            }
+        }
+        .overlay {
+            if store.sections.isEmpty {
+                ContentUnavailableView {
+                    Label("No Tasks", systemImage: "checklist")
+                } description: {
+                    Text("Create new task")
+                } actions: {
+                    Button("Create Task", systemImage: "checkmark") {
+                        store.send(.user(.createButtonTapped), animation: .smooth)
                     }
-                } header: {
-                    Text(section.type.title)
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
                 }
             }
         }
@@ -52,10 +69,12 @@ public struct TasksView: View {
             
             #if DEBUG
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    store.send(.user(.seedDataButtonTapped), animation: .smooth)
-                } label: {
-                    Image(systemName: "leaf.fill")
+                if store.sections.isEmpty {
+                    Button {
+                        store.send(.user(.seedDataButtonTapped), animation: .smooth)
+                    } label: {
+                        Image(systemName: "leaf.fill")
+                    }
                 }
             }
             #endif
