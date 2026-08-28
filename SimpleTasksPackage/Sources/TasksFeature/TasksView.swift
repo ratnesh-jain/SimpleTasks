@@ -5,6 +5,7 @@
 //  Created by Ratnesh Jain on 28/08/26.
 //
 
+import AppUserInterfaceUtilities
 import CreateEditTaskFeature
 import ComposableArchitecture
 import CoreModels
@@ -32,29 +33,28 @@ public struct TasksView: View {
                                         .font(.title)
                                     Text("Drag Items here")
                                 }
+                                .frame(maxWidth: .infinity)
                                 .frame(height: 132)
                                 .foregroundStyle(.secondary)
-                            }
-                            ForEach(section.items) { item in
-                                TaskItemView(task: item, namespace: namespace) { action in
-                                    store.send(.user(.taskButtonTapped(item, action)))
+                                .contentShape(.rect)
+                                .dropDestination(for: Task.self) { tasks, location in
+                                    store.send(.user(.dropItems(tasks, toSection: section.type)), animation: .smooth)
+                                    return true
                                 }
-                                .padding()
-                                .draggable(item) {
-                                    HStack {
-                                        Image(systemName: "checklist")
-                                        Text(item.title)
+                            } else {
+                                ForEach(section.items) { item in
+                                    TaskItemView(task: item, namespace: namespace) { action in
+                                        store.send(.user(.taskButtonTapped(item, action)))
                                     }
                                     .padding()
-                                    .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24, style: .continuous))
+                                    .overlay(alignment: .bottom) {
+                                        if item.id != section.items.last?.id {
+                                            Divider()
+                                        }
+                                    }
                                 }
-                                if item.id != section.items.last?.id {
-                                    Divider()
-                                }
+                                .reorderable(collectionID: section.type)
                             }
-                            //.onMove { indexSet, destination in
-                            //    store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
-                            //}
                         }
                         .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24, style: .continuous))
                         .overlay {
@@ -70,11 +70,22 @@ public struct TasksView: View {
                             .foregroundStyle(.secondary)
                             .padding([.horizontal, .top])
                     }
-                    .dropDestination(for: Task.self, isEnabled: true) { tasks, session in
-                        store.send(.user(.dropItems(tasks, toSection: section.type)), animation: .smooth)
-                    }
                 }
             }
+            .reorderContainer(for: Task.self, in: TaskSections.SectionType.self, move: { difference in
+                store.send(.user(.reorderAction(difference)))
+            })
+            .dragContainer(for: Task.self) { itemIds in
+                @Dependency(\.defaultDatabase) var database
+                return (try? database.read { db in
+                    try Task.find(itemIds).fetchAll(db)
+                }) ?? []
+            }
+            .dragConfiguration(DragConfiguration(allowMove: true))
+            .dropDestination(for: Task.self, action: { tasks, session in
+                let destination = session.reorderDestination(for: Task.self, in: TaskSections.SectionType.self)
+                store.send(.user(.dropAction(tasks, destination: destination)))
+            })
             .padding()
         }
         .scrollContentBackground(.hidden)

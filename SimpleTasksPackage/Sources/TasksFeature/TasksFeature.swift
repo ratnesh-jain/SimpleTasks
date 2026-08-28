@@ -12,6 +12,7 @@ import Foundation
 import NetworkStatusService
 import SQLiteData
 import Sharing
+import SwiftUI
 
 @Reducer
 public struct TasksFeature: Sendable {
@@ -49,6 +50,8 @@ public struct TasksFeature: Sendable {
             case seedDataButtonTapped
             case moveAction(section: TaskSections.SectionType, source: IndexSet, destination: Int)
             case dropItems([Task], toSection: TaskSections.SectionType)
+            case reorderAction(ReorderDifference<Task.ID, TaskSections.SectionType>)
+            case dropAction([Task], destination: ReorderDifference<Task.ID, TaskSections.SectionType>.Destination?)
         }
         
         case destination(PresentationAction<Destination.Action>)
@@ -147,13 +150,32 @@ public struct TasksFeature: Sendable {
                 }
                 
             case .user(.dropItems(let items, let section)):
-                let itemIds = items.map { $0.id }
                 return .run { send in
-                    try await database.write { db in
-                        try Task.find(itemIds)
-                            .update { $0.status = section.asTaskStatus }
-                            .execute(db)
-                    }
+                    try await Task.reorderTasks(
+                        sourceIDs: items.map(\.id),
+                        droppedTasks: items,
+                        targetSection: section,
+                        position: .end
+                    )
+                }
+                
+            case .user(.reorderAction(let reorderDifference)):
+                return .run { send in
+                    try await Task.reorderTasks(
+                        sourceIDs: reorderDifference.sources,
+                        targetSection: reorderDifference.destination.collectionID,
+                        position: reorderDifference.destination.position
+                    )
+                }
+                
+            case .user(.dropAction(let tasks, let destination)):
+                return .run { send in
+                    try await Task.reorderTasks(
+                        sourceIDs: tasks.map(\.id),
+                        droppedTasks: tasks,
+                        targetSection: destination?.collectionID,
+                        position: destination?.position ?? .end
+                    )
                 }
             }
         }

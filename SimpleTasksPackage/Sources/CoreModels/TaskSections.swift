@@ -9,7 +9,7 @@ import Foundation
 import SQLiteData
 
 public struct TaskSections: Equatable, Sendable {
-    public enum SectionType: Equatable, Identifiable, Sendable {
+    public enum SectionType: String, CaseIterable, Equatable, Hashable, Identifiable, Sendable {
         case todo
         case inProgress
         case done

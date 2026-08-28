@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -23,7 +23,7 @@ extension Target.Dependency {
 
 let package = Package(
     name: "SimpleTasksPackage",
-    platforms: [.iOS(.v26), .macOS(.v26)],
+    platforms: [.iOS(.v27)],
     products: [
         .library(name: "FirebaseServiceLive", targets: ["FirebaseServiceLive"]),
         .library(name: "SyncService", targets: ["SyncService"]),
@@ -47,6 +47,7 @@ let package = Package(
                 .dependenciesMacros,
             ]
         ),
+        .target(name: "AppUserInterfaceUtilities"),
         .target(
             name: "FirebaseService",
             dependencies: [
@@ -79,6 +80,7 @@ let package = Package(
         .target(
             name: "TasksFeature",
             dependencies: [
+                "AppUserInterfaceUtilities",
                 "CreateEditTaskFeature",
                 "NetworkStatusService",
             ]
