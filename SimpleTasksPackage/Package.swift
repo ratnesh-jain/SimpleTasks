@@ -42,8 +42,9 @@ let package = Package(
         .target(
             name: "NetworkStatusService",
             dependencies: [
+                "CoreModels",
                 .dependencies,
-                .dependenciesMacros
+                .dependenciesMacros,
             ]
         ),
         .target(

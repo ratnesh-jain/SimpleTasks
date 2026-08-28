@@ -9,7 +9,9 @@ import CreateEditTaskFeature
 import ComposableArchitecture
 import CoreModels
 import Foundation
+import NetworkStatusService
 import SQLiteData
+import Sharing
 
 @Reducer
 public struct TasksFeature: Sendable {
@@ -30,6 +32,7 @@ public struct TasksFeature: Sendable {
     @ObservableState
     public struct State: Equatable {
         @Fetch(TaskSectionsRequest(), animation: .smooth) var sections: TaskSections = .init()
+        @SharedReader(.isNetworkReachable) var isNetworkReachable
         
         @Presents var destination: Destination.State?
         public init() {}

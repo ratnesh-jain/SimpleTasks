@@ -55,6 +55,16 @@ public struct TasksView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom, content: {
+            HStack {
+                Circle()
+                    .fill(store.isNetworkReachable ? Color.green : Color.gray)
+                    .frame(width: 8, height: 8)
+                Text(store.isNetworkReachable ? "Connected" : "Disconnected")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        })
         .navigationTitle("Simple Tasks")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
