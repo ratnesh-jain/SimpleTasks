@@ -25,8 +25,8 @@ public struct TasksView: View {
             ForEach(store.sections.sections) { (section: TaskSections.Section) in
                 if !section.isEmpty {
                     Section {
-                        ForEach(section.items) { (item: Task) in
-                            TaskItemView(task: item) { (action: TasksFeature.TaskActionType) in
+                        ForEach(section.items) { item in
+                            TaskItemView(task: item) { action in
                                 store.send(.user(.taskButtonTapped(item, action)))
                             }
                             .matchedTransitionSource(id: item.id, in: namespace)
