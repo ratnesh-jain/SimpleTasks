@@ -44,7 +44,7 @@ public struct TasksFeature: Sendable {
             case createButtonTapped
             case taskButtonTapped(Task, TaskActionType)
             case seedDataButtonTapped
-            case moveAction(source: IndexSet, destination: Int)
+            case moveAction(section: TaskSections.SectionType, source: IndexSet, destination: Int)
         }
         
         case destination(PresentationAction<Destination.Action>)
@@ -132,11 +132,32 @@ public struct TasksFeature: Sendable {
                     }
                 }
                 
-            case .user(.moveAction(let source, let destination)):
-                for item in source {
-                    print("item index: \(item), to: \(destination)")
+            case .user(.moveAction(let sectionType, let source, let destination)):
+                guard
+                    let sectionIndex = state.sections.sections.firstIndex(where: { $0.type == sectionType }),
+                    let movedTask = state.sections.sections[sectionIndex].items[safe: source.first ?? -1]
+                else { return .none }
+                
+                return .run { send in
+                    try Task.move(id: movedTask.id, status: sectionType.asTaskStatus, from: source.first!, to: destination)
                 }
-                return .none
+                
+                // NOTE: For the small sets of notes, it is fine.
+                // but for larger numbers of items, logic should be moved to database level.
+                //var items = IdentifiedArray(uniqueElements: state.sections.sections[sectionIndex].items)
+                //items.move(fromOffsets: source, toOffset: destination)
+                //let updates = items.enumerated().map { (taskID: $0.element.id, sortOrder: $0.offset) }
+                
+                //return .run { send in
+                //    try await database.write { db in
+                //        for (taskID, sortOrder) in updates {
+                //            try Task.find(taskID).update {
+                //                $0.sortOrder = sortOrder
+                //            }
+                //            .execute(db)
+                //        }
+                //    }
+                //}
             }
         }
         .ifLet(\.$destination, action: \.destination)
@@ -145,3 +166,11 @@ public struct TasksFeature: Sendable {
 
 extension TasksFeature.Destination.State: Equatable {}
 extension TasksFeature.Destination.Action: Equatable {}
+
+extension Collection {
+    public subscript(safe index: Index) -> Element? {
+        get {
+            self.indices.contains(index) ? self[index] : nil
+        }
+    }
+}

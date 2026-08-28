@@ -11,3 +11,7 @@ import SQLiteData
 protocol DatabaseMigrating {
     static func migrate(using migrator: inout DatabaseMigrator) throws
 }
+
+protocol DatabaseTriggering {
+    static func registerTriggers(in database: any DatabaseWriter) throws
+}

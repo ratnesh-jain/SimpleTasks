@@ -20,6 +20,9 @@ extension DependencyValues {
                 logger.debug("\($0.expandedDescription)")
             }
             #endif
+            
+            db.add(function: $taskRecordDeleted)
+            db.add(function: $taskRecordUpdated)
         }
         
         let url = URL.documentsDirectory.appending(path: "db.sqlite")
@@ -27,6 +30,7 @@ extension DependencyValues {
         
         var migrator = DatabaseMigrator()
         #if DEBUG
+        print("open \(url.path())")
         migrator.eraseDatabaseOnSchemaChange = true
         #endif
         
@@ -35,6 +39,8 @@ extension DependencyValues {
         
         // MARK: - Database Migration
         try migrator.migrate(database)
+        
+        try Task.registerTriggers(in: database)
         
         self.defaultDatabase = database
     }

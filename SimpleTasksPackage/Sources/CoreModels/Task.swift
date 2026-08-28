@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Sharing
 import SQLiteData
 
 public enum TaskStatus: Int, Codable, Equatable, Sendable, QueryBindable {
@@ -20,17 +21,19 @@ public struct Task: Codable, Equatable, Identifiable, Sendable {
     public var title: String
     public var description: String
     public var status: TaskStatus
+    public var sortOrder: Int
     public var createdAt: Date
     public var updatedAt: Date
     public var deletedAt: Date?
     public var uploaded: Bool
     public var createdBy: String
     
-    public init(id: UUID = .init(), title: String, description: String = "", status: TaskStatus = .todo, createdAt: Date = .now, updatedAt: Date = .now, deletedAt: Date? = nil, uploaded: Bool = false, createdBy: String) {
+    public init(id: UUID = .init(), title: String, description: String = "", status: TaskStatus = .todo, sortOrder: Int = 0, createdAt: Date = .now, updatedAt: Date = .now, deletedAt: Date? = nil, uploaded: Bool = false, createdBy: String) {
         self.id = id
         self.title = title
         self.description = description
         self.status = status
+        self.sortOrder = sortOrder
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.deletedAt = deletedAt
@@ -48,15 +51,12 @@ extension Task: DatabaseMigrating {
                 t.column("title", .text).notNull()
                 t.column("description", .text).notNull()
                 t.column("status", .integer).notNull()
+                t.column("sortOrder", .integer).notNull().defaults(to: 0)
                 t.column("createdAt", .datetime).notNull()
                 t.column("updatedAt", .datetime).notNull()
+                t.column("deletedAt", .datetime)
                 t.column("uploaded", .boolean).notNull()
                 t.column("createdBy", .text).notNull()
-            }
-        }
-        migrator.registerMigration("Add column 'deletedAt' to 'tasks'") { database in
-            try database.alter(table: Self.tableName) { t in
-                t.add(column: "deletedAt", .datetime)
             }
         }
     }
@@ -68,112 +68,142 @@ extension Task {
             $0.deletedAt.is(nil)
         }
     }
-}
-
-// MARK: - Seed Data
-extension Task {
-    public static var seedData: [Task] {
-        [
-            Task(
-                id: UUID(0),
-                title: "Design home screen",
-                description: "Sketch out the initial layout for the home screen in Figma.",
-                status: .todo,
-                createdBy: "Ratnesh"
-            ),
-            Task(
-                id: UUID(1),
-                title: "Write project kickoff doc",
-                description: "Draft the scope and goals for the next release.",
-                status: .inProgress,
-                createdBy: "Ratnesh"
-            ),
-            Task(
-                id: UUID(2),
-                title: "Review pull requests",
-                description: "Go through the open PRs and leave feedback.",
-                status: .inProgress,
-                createdBy: "Ratnesh"
-            ),
-            Task(
-                id: UUID(3),
-                title: "Set up CI pipeline",
-                description: "Configure the build and test jobs on GitHub Actions.",
-                status: .done,
-                createdBy: "Ratnesh"
-            ),
-            Task(
-                id: UUID(4),
-                title: "Ship v1.0",
-                description: "Submit the first release to the App Store.",
-                status: .done,
-                createdBy: "Ratnesh"
-            ),
-        ]
+    
+    public static var nextOrder: Select<Int?, Task, ()> {
+        Task
+            .allAvailable
+            .where { $0.status.eq(status) }
+            .select { $0.sortOrder.max() }
+    }
+    
+    public static var allPendingToSync: Where<Self> {
+        Self.all.where { $0.uploaded.eq(false) }
     }
 }
 
-// MARK: - Task Sections
+extension Task: DatabaseTriggering {
+    static func registerTriggers(in database: any DatabaseWriter) throws {
+        try database.write { db in
+            
+            // MARK: - Assign sort order from the total count of rows
+            try Task.createTemporaryTrigger(after: .insert { new in
+                Task.update {
+                    $0.sortOrder = Task.select { $0.count() }
+                }
+                .where { $0.id.eq(new.id) }
+            })
+            .execute(db)
+            
+            // MARK: - Delete trigger
+            try Task.createTemporaryTrigger(before: .delete(forEachRow: { old in
+                #sql("SELECT \($taskRecordDeleted(old.id))")
+            }))
+            .execute(db)
+            
+            // MARK: - Not Uploaded trigger
+            try Task.createTemporaryTrigger(after: .update(forEachRow: { old, new in
+                #sql("SELECT \($taskRecordUpdated(new.id))")
+            }, when: { old, new in
+                new.uploaded.eq(false)
+            }))
+            .execute(db)
+            
+            // MARK: - Change updatedAt date
+            try Task.createTemporaryTrigger(after: .update(touch: { new in
+                new.uploaded = false
+                new.updatedAt = #sql("datetime()")
+            }, when: { old, new in
+                new.status.neq(old.status).or(new.sortOrder.neq(old.sortOrder))
+            }))
+            .execute(db)
+        }
+    }
+}
 
-public struct TaskSections: Equatable, Sendable {
-    public enum SectionType: Equatable, Identifiable, Sendable {
-        case todo
-        case inProgress
-        case done
-        
-        public var id: Self { self }
-        
-        public var title: String {
-            switch self {
-            case .todo:
-                "To Do"
-            case .inProgress:
-                "In Progress"
-            case .done:
-                "Done"
+@DatabaseFunction
+func taskRecordDeleted(id: Task.ID) {
+    @Shared(.deletedTaskItems) var deletedItems
+    $deletedItems.withLock { $0.yield(id) }
+}
+
+@DatabaseFunction
+func taskRecordUpdated(id: Task.ID) {
+    Swift.Task {
+        await withErrorReporting {
+            @Dependency(\.suspendingClock) var clock
+            try await clock.sleep(for: .seconds(1))
+            @Dependency(\.defaultDatabase) var database
+            let item = try await database.read { db in
+                try Task.find(id).fetchOne(db)
+            }
+            if let item {
+                @Shared(.updatedTaskItems) var items
+                $items.withLock { $0.yield(item) }
             }
         }
     }
-    
-    public struct Section: Equatable, Identifiable, Sendable {
-        public var type: SectionType
-        public var items: [Task]
-        
-        public var id: SectionType { self.type }
-        
-        public init(type: SectionType, items: [Task]) {
-            self.type = type
-            self.items = items
-        }
-        
-        public var isEmpty: Bool {
-            self.items.isEmpty
-        }
-    }
-    
-    public var sections: [Section]
-    
-    public init(sections: [Section] = []) {
-        self.sections = sections
-    }
-    
-    public var isEmpty: Bool {
-        self.sections.isEmpty
+}
+
+extension SharedKey where Self == InMemoryKey<SyncStream<Task.ID>>.Default {
+    public static var deletedTaskItems: Self {
+        self[.inMemory("deletedTaskItems"), default: .init()]
     }
 }
 
-public struct TaskSectionsRequest: FetchKeyRequest, Equatable {
-    public init() {}
-    
-    public func fetch(_ db: Database) throws -> TaskSections {
-        let todoItems = try Task.allAvailable.where { $0.status.eq(TaskStatus.todo) }.fetchAll(db)
-        let inProgressItems = try Task.allAvailable.where { $0.status.eq(TaskStatus.inProgress) }.fetchAll(db)
-        let completedItems = try Task.allAvailable.where { $0.status.eq(TaskStatus.done) }.fetchAll(db)
-        
-        let todoSection = TaskSections.Section(type: .todo, items: todoItems)
-        let inProgressSection = TaskSections.Section(type: .inProgress, items: inProgressItems)
-        let completedSection = TaskSections.Section(type: .done, items: completedItems)
-        
-        return TaskSections(sections: [todoSection, inProgressSection, completedSection])
+extension SharedKey where Self == InMemoryKey<SyncStream<Task>>.Default {
+    public static var updatedTaskItems: Self {
+        self[.inMemory("updatedTaskItems"), default: .init()]
+    }
+}
+
+extension Task {
+    public static func move(id: Task.ID, status: TaskStatus, from source: Int, to destination: Int) throws {
+        guard source != destination else { return }
+        @Dependency(\.defaultDatabase) var database
+        try database.write { db in
+            if source < destination {
+                try #sql("""
+                UPDATE "\(raw: Task.tableName)"
+                SET "sortOrder" = CASE
+                    WHEN "id" = \(id) THEN \(destination)
+                    WHEN "sortOrder" > \(source)
+                        AND "sortOrder" <= \(destination)
+                        THEN "sortOrder" - 1
+                    ELSE "sortOrder"
+                END
+                WHERE "status" = \(status)
+                    AND "deletedAt" IS NULL
+                    AND (
+                        "id" = \(id)
+                        OR (
+                            "sortOrder" > \(source)
+                            AND "sortOrder" <= \(destination)
+                        )
+                    )
+                """)
+                .execute(db)
+            } else {
+                try #sql("""
+                UPDATE "\(raw: Task.tableName)"
+                SET "sortOrder" = CASE
+                    WHEN "id" = \(id) THEN \(destination)
+                    WHEN "sortOrder" >= \(destination)
+                        AND "sortOrder" < \(source)
+                        THEN "sortOrder" + 1
+                    ELSE "sortOrder"
+                END
+                WHERE "status" = \(status)
+                    AND "deletedAt" IS NULL
+                    AND (
+                        "id" = \(id)
+                        OR (
+                            "sortOrder" >= \(destination)
+                            AND "sortOrder" < \(source)
+                        )
+                    )
+                """)
+                .execute(db)
+            }
+        }
     }
 }

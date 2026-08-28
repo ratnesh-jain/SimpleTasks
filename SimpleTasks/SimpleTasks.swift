@@ -9,6 +9,9 @@ import CoreModels
 import ComposableArchitecture
 import SwiftUI
 import TasksFeature
+import Firebase
+import FirebaseServiceLive
+import SyncService
 
 @main
 struct SimpleTasks: App {
@@ -21,9 +24,14 @@ struct SimpleTasks: App {
             }
         }
         
+        FirebaseApp.configure()
+        
         store = .init(initialState: .init()) {
             TasksFeature()
         }
+        
+        @Dependency(\.syncService) var syncService
+        syncService.start()
     }
     
     var body: some Scene {

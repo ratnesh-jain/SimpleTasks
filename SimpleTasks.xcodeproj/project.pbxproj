@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0383F61A30418A4F00691144 /* FirebaseServiceLive in Frameworks */ = {isa = PBXBuildFile; productRef = 0383F61930418A4F00691144 /* FirebaseServiceLive */; };
+		0383F61E3041985E00691144 /* SyncService in Frameworks */ = {isa = PBXBuildFile; productRef = 0383F61D3041985E00691144 /* SyncService */; };
 		03CAD9F830415A4100308C6F /* TasksFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 03CAD9F730415A4100308C6F /* TasksFeature */; };
 /* End PBXBuildFile section */
 
@@ -27,7 +29,9 @@
 		000000000000000130000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				0383F61E3041985E00691144 /* SyncService in Frameworks */,
 				03CAD9F830415A4100308C6F /* TasksFeature in Frameworks */,
+				0383F61A30418A4F00691144 /* FirebaseServiceLive in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -77,6 +81,8 @@
 			name = SimpleTasks;
 			packageProductDependencies = (
 				03CAD9F730415A4100308C6F /* TasksFeature */,
+				0383F61930418A4F00691144 /* FirebaseServiceLive */,
+				0383F61D3041985E00691144 /* SyncService */,
 			);
 			productName = MyApp;
 			productReference = 000000000000000000000120 /* SimpleTasks.app */;
@@ -375,6 +381,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0383F61930418A4F00691144 /* FirebaseServiceLive */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseServiceLive;
+		};
+		0383F61D3041985E00691144 /* SyncService */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SyncService;
+		};
 		03CAD9F730415A4100308C6F /* TasksFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TasksFeature;

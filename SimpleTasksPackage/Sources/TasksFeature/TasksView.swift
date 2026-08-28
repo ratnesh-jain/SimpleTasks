@@ -31,7 +31,7 @@ public struct TasksView: View {
                         .matchedTransitionSource(id: item.id, in: namespace)
                     }
                     .onMove { indexSet, destination in
-                        store.send(.user(.moveAction(source: indexSet, destination: destination)))
+                        store.send(.user(.moveAction(section: section.type, source: indexSet, destination: destination)))
                     }
                 } header: {
                     Text(section.type.title)

@@ -68,10 +68,10 @@ public struct CreateEditTaskFeature: Sendable {
                 }
                 
             case .user(.saveButtonTapped):
-                let task = state.task
+                let storedTask = state.task
                 return .run { send in
                     try await database.write { db in
-                        try Task.upsert { task }.execute(db)
+                        try Task.upsert { storedTask }.execute(db)
                     }
                     await dismiss()
                 }
