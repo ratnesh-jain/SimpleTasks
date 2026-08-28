@@ -23,31 +23,38 @@ struct SyncServiceImpl {
     }
     
     func syncPendingItems() {
-        withErrorReporting {
-            @Dependency(\.defaultDatabase) var database
-            let items = try database.read { db in
-                try Task.allPendingToSync.fetchAll(db)
-            }
-            guard !items.isEmpty else { return }
-            
-            @Dependency(\.firebaseService) var firestore
-            var syncedItemIds: Set<Task.ID> = []
-            
-            for item in items {
-                do {
-                    var copy = item
-                    copy.uploaded = true
-                    try firestore.updateItem(collectionName: Task.tableName, documentID: item.id.uuidString, document: copy)
-                    syncedItemIds.insert(item.id)
-                } catch {
-                    throw error
+        Swift.Task {
+            await withErrorReporting {
+                @Dependency(\.defaultDatabase) var database
+                let items = try await database.read { db in
+                    try Task.allPendingToSync.fetchAll(db)
                 }
-            }
-            
-            guard !syncedItemIds.isEmpty else { return }
-            
-            try database.write { db in
-                try Task.find(syncedItemIds).update { $0.uploaded = true }.execute(db)
+                guard !items.isEmpty else { return }
+                
+                @Dependency(\.firebaseService) var firestore
+                let remoteItems = try await firestore.fetchItemsByIDs(collectionName: Task.tableName, documentIDs: items.map { $0.id.uuidString }, documentType: Task.self).compactMap { $0.document as? Task }
+                var syncedItemIds: Set<Task.ID> = []
+                
+                for item in items {
+                    do {
+                        var copy = item
+                        if let remoteItem = remoteItems.first(where: { $0.id == item.id }) {
+                            if remoteItem.updatedAt >= item.updatedAt { continue }
+                        }
+                        copy.uploaded = true
+                        try firestore.updateItem(collectionName: Task.tableName, documentID: item.id.uuidString, document: copy)
+                        syncedItemIds.insert(item.id)
+                    } catch {
+                        throw error
+                    }
+                }
+                
+                guard !syncedItemIds.isEmpty else { return }
+                let syncIds = syncedItemIds
+                
+                try await database.write { db in
+                    try Task.find(syncIds).update { $0.uploaded = true }.execute(db)
+                }
             }
         }
     }
@@ -72,10 +79,15 @@ struct SyncServiceImpl {
                     @Dependency(\.defaultDatabase) var database
                     try await database.write { db in
                         switch change.changeType {
-                        case .added:
-                            try Task.upsert { item }.execute(db)
-                        case .modified:
-                            try Task.upsert { item }.execute(db)
+                        case .added, .modified:
+                            let existing = try Task.find(item.id).fetchOne(db)
+                            if let existing {
+                                let winner = Task.resolveConflict(between: existing, remote: item)
+                                try Task.upsert { winner }.execute(db)
+                            } else {
+                                try Task.upsert { item }.execute(db)
+                            }
+                        
                         case .removed:
                             try Task.find(item.id).delete().execute(db)
                         }
@@ -93,11 +105,22 @@ struct SyncServiceImpl {
                         @SharedReader(.updatedTaskItems) var updatedItems
                         for await item in updatedItems.stream {
                             @Dependency(\.firebaseService) var firestore
+                            @Dependency(\.defaultDatabase) var database
+                            
+                            let remoteItem = try await firestore.fetchItemsByIDs(collectionName: Task.tableName, documentIDs: [item.id.uuidString], documentType: Task.self).first?.document as? Task
+                            if let remoteItem {
+                                guard item.updatedAt >= remoteItem.updatedAt else {
+                                    try await database.write { db in
+                                        try Task.upsert { remoteItem }.execute(db)
+                                    }
+                                    continue
+                                }
+                            }
+                            
                             var copy = item
                             copy.uploaded = true
                             try firestore.updateItem(collectionName: Task.tableName, documentID: item.id.uuidString, document: copy)
                             
-                            @Dependency(\.defaultDatabase) var database
                             try await database.write { db in
                                 try Task.find(item.id).update { $0.uploaded = true }.execute(db)
                             }

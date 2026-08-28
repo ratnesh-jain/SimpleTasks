@@ -92,6 +92,10 @@ extension Task {
     public static var allPendingToSync: Where<Self> {
         Self.all.where { $0.uploaded.eq(false) }
     }
+    
+    public static func resolveConflict(between local: Task, remote: Task) -> Task {
+        remote.updatedAt >= local.updatedAt ? remote : local
+    }
 }
 
 extension Task: DatabaseTriggering {
